@@ -2,6 +2,8 @@
 
 **A real-time AI tutoring UI built on a Claude Code MCP channel.**
 
+`Local-first` · `Node.js + Model Context Protocol + WebSocket` · `vendored SQLite knowledge graph` · a proof-of-concept, not a product.
+
 ![demo](docs/demo.gif)
 
 _(demo GIF — see [`docs/`](docs/) for how it's recorded)_
@@ -61,6 +63,19 @@ Long-form, ADR-style design docs for each of these live under **[`plans/`](plans
 | **better-sqlite3 + sqlite-vec + FTS5** | The KG store: synchronous SQLite, vector KNN (sqlite-vec), and BM25 full-text (FTS5) for hybrid recall — all local, zero network. |
 | **Gemini Files API** (`@google/genai`) | The agent can't watch video or read PDFs; Gemini ingests the lesson media and answers scoped, timestamped questions. |
 | **marked / mermaid / DOMPurify** | Render the coach's markdown notes, draw architecture diagrams inline, and sanitize all rendered HTML (notes come from the model). |
+
+## Repository tour
+
+| Path | What it is |
+|------|-----------|
+| **`study-web/`** | The cockpit. `server.js` is the dual-face MCP-channel + HTTP/WebSocket server; `public/index.html` is the browser SPA (term/timestamp hydration, video panel); `lib/video-http.js` holds the Range parser + path guard, with unit tests beside it. |
+| **`mcp-gemini-video/`** | MCP server that delegates video/PDF understanding to the Gemini Files API. |
+| **`kg/`** | Vendored knowledge-graph engine (MIT) plus this project's Claude Code hooks and the patched relative-path resolver. |
+| **`scripts/`** | Setup verifier, web-notes validator, WAL-aware KG git-sync, transcript helper. |
+| **`demo-lessons/`** | The hand-authored "URL Shortener" demo lesson — clickable notes + timestamped video notes. |
+| **`plans/`** | ADR-style design docs (the cockpit; the video feature) — the reasoning behind the decisions above. |
+| **`COACH-SPEC.md`** | How the Claude agent is programmed: trust taxonomy, KG conventions, pedagogy loop. |
+| **`ARCHITECTURE.md`** | Component diagrams + the full data-flow walkthrough. |
 
 ## Quick start
 

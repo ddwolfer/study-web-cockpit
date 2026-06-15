@@ -33,7 +33,7 @@ The loop:
 2. **Read slide PDFs through the reader.** The host has no local PDF text path, and slides are visual + bilingual, so naive text extraction drops content — it must not be used as evidence.
    - `gemini_digest_pdf(lesson)` returns **verbatim per-slide text + figure descriptions**, suitable for extracting quotes.
    - `gemini_ask_pdf(lesson, question)` targets a single slide or point.
-   - **Cache the verbatim digest once per lesson** as `notes/<lesson>/digest.md`. Later, to quote a specific slide precisely, the agent greps/reads just that span instead of asking the reader to re-process the whole PDF (saves tokens + latency).
+   - **Cache the verbatim digest once per lesson** as a `digest.md` in the lesson folder. Later, to quote a specific slide precisely, the agent greps/reads just that span instead of asking the reader to re-process the whole PDF (saves tokens + latency).
 3. **Discuss + teach-back (§8).** Align understanding, fill context, and have the user restate in their own words. A correct verbal restatement can serve as quote evidence (basis for upgrading a node — see §3).
 4. **Capture.** `store_knowledge` + `connect_knowledge` per the trust rules.
 
