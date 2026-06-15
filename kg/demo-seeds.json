@@ -2,7 +2,7 @@
   {
     "name": "HTTP 301 Moved Permanently",
     "content": "A 301 response tells the user agent that the requested resource has been permanently moved to a new URI. Conforming browsers cache the redirect and go directly to the target on subsequent requests, eliminating a round-trip to the origin server. Side-effect: the origin server never sees repeat visits, so click analytics become unreliable.",
-    "type": "concept",
+    "type": "core",
     "trust": "principle",
     "quote": "The 301 (Moved Permanently) status code indicates that the target resource has been assigned a new permanent URI and any future references to this resource ought to use one of the enclosed URIs. — RFC 7231 §6.4.2",
     "source": "RFC 7231 §6.4.2 (IETF, 2014)",
@@ -16,7 +16,7 @@
   {
     "name": "HTTP 302 Found (Temporary Redirect)",
     "content": "A 302 response indicates a temporary redirect. The user agent re-requests the original URI on every visit, so the origin server receives each request and can count clicks. Preferred when click analytics or A/B testing is required. Trade-off: one extra network round-trip per redirect versus 301.",
-    "type": "concept",
+    "type": "core",
     "trust": "principle",
     "quote": "The 302 (Found) status code indicates that the target resource resides temporarily under a different URI. Since the redirection might be altered on occasion, the client ought to continue using the effective request URI for future requests. — RFC 7231 §6.4.3",
     "source": "RFC 7231 §6.4.3 (IETF, 2014)",
@@ -30,7 +30,7 @@
   {
     "name": "Base62 Encoding for Short Codes",
     "content": "Base62 uses the 62 characters [0-9a-zA-Z] to represent integers as compact, URL-safe strings. A 6-character base62 code covers 62^6 ≈ 56.8 billion unique values — enough for decades of URL shortener operation at 100 M new URLs per day. Compared to base64, base62 avoids the '+' and '/' characters that require percent-encoding in URLs.",
-    "type": "concept",
+    "type": "core",
     "trust": "pattern",
     "source": "General computer science knowledge; no single authoritative source",
     "metadata": {
@@ -42,7 +42,7 @@
   {
     "name": "Key Generation Service (KGS) Pattern",
     "content": "A KGS pre-generates unique IDs and hands out batches to API servers. Each API server holds a local batch (e.g. 1 000 IDs) and assigns them without contacting the KGS on every request. This eliminates the KGS as a per-request bottleneck. The KGS itself is kept simple (two instances: active + standby) and its Key DB stores only a monotonically advancing counter range. Crash recovery: the standby takes over; any unused IDs in a crashed API server's batch are simply skipped (small waste, no correctness issue).",
-    "type": "pattern",
+    "type": "insight",
     "trust": "pattern",
     "source": "Common industry pattern; described in multiple public system-design resources",
     "metadata": {
@@ -54,7 +54,7 @@
   {
     "name": "Read-Heavy System Optimisation Order",
     "content": "For systems with a high read-to-write ratio (100:1 or more), the correct optimisation sequence is: (1) add in-memory caching first — highest ROI, cheapest infrastructure; (2) add read replicas to protect the primary DB write path; (3) consider sharding only when a single primary's write throughput is the bottleneck. Jumping straight to sharding for a read problem is a common interview mistake.",
-    "type": "principle",
+    "type": "insight",
     "trust": "pattern",
     "source": "Widely documented systems engineering heuristic",
     "metadata": {
@@ -66,7 +66,7 @@
   {
     "name": "Stateless API Server Design",
     "content": "An API server is stateless when each request contains all information needed to process it and the server holds no per-session state between requests. Stateless servers can be added or removed freely behind a load balancer with no coordination overhead. For a URL shortener, the only state lives in the DB and cache — the API layer is intentionally kept stateless to enable horizontal scaling.",
-    "type": "concept",
+    "type": "core",
     "trust": "pattern",
     "source": "REST architectural constraints; Fielding dissertation (2000)",
     "metadata": {
@@ -78,7 +78,7 @@
   {
     "name": "Cache Warming vs Lazy Population",
     "content": "Two strategies for populating a cache. Lazy population (cache-aside): on a cache miss, the application fetches from the DB, writes the result to the cache, and returns it. The cache fills naturally with whatever is actually accessed. Eager warming: proactively load the hottest N keys at startup. For a URL shortener, lazy population suffices for most codes; eager warming can be applied to the top-1000 hottest short codes (e.g. a viral link) to prevent a stampede on startup or after cache flush.",
-    "type": "pattern",
+    "type": "insight",
     "trust": "pattern",
     "source": "General caching literature; see also Redis documentation on cache patterns",
     "metadata": {
@@ -90,7 +90,7 @@
   {
     "name": "URL Shortener — Core Design Decision Matrix",
     "content": "The three decisions that determine the URL shortener's architecture: (1) ID generation — hash-and-truncate (stateless, collision-prone at scale) vs counter+KGS (collision-free, requires KGS HA); (2) redirect type — 302 for analytics accuracy vs 301 for client-side caching and load reduction; (3) caching scope — in-process LRU for top-N hottest codes + distributed Redis for the long tail. All three are independent axes and should be justified against the stated non-functional requirements.",
-    "type": "pattern",
+    "type": "insight",
     "trust": "pattern",
     "source": "Synthesised from public system-design interview guides and RFC 7231",
     "metadata": {

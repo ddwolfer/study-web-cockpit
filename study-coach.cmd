@@ -12,4 +12,4 @@ REM  After it starts, open http://127.0.0.1:7654 in your browser.
 REM  (Comments are ASCII-only on purpose: cmd.exe misreads non-ASCII .cmd bytes.)
 REM ============================================================================
 cd /d "%~dp0"
-claude --resume "system_design_study" --dangerously-load-development-channels server:study-web %*
+claude --resume "study-web-cockpit" --dangerously-load-development-channels server:study-web %*

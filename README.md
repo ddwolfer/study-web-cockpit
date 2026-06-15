@@ -81,14 +81,17 @@ Long-form, ADR-style design docs for each of these live under **[`plans/`](plans
 
 ```bash
 # 1. Install deps in each sub-package
-(cd kg && npm install)              # vendored KG engine (downloads a ~560MB embed model on first run)
+(cd kg && npm install)              # vendored KG engine (builds a native SQLite module)
 (cd mcp-gemini-video && npm install)
 (cd study-web && npm install)
 
 # 2. Verify the setup
 node scripts/check-setup.mjs
 
-# 3. Launch the coach (it starts Claude Code with the cockpit loaded as a channel)
+# 3. (optional) seed the demo knowledge graph — powers spaced review + traverse_graph
+node scripts/seed-demo-kg.mjs       # kg/demo-seeds.json -> kg/demo.db (full-text; vectors optional)
+
+# 4. Launch the coach (starts Claude Code with the cockpit loaded as a channel)
 #    Windows:  study-coach.cmd
 #    macOS:    ./study-coach.command   (chmod +x it the first time)
 ```

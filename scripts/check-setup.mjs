@@ -82,7 +82,7 @@ head('Knowledge graph (kg/demo.db)')
 {
   const db = 'kg/demo.db'
   if (exists(db) && statSync(rpath(db)).size > 0) ok(`${db} present (${(statSync(rpath(db)).size / 1024).toFixed(0)} KB)`)
-  else warn(`${db} not built yet — optional; build the demo KG per README (npm install + seed)`)
+  else warn(`${db} not built yet — optional; build it with: node scripts/seed-demo-kg.mjs`)
 }
 
 // 5) Course material (gitignored — copy manually) -----------------------

@@ -120,20 +120,28 @@ passed" line.
 
 ## 6. (Optional) Build the demo knowledge graph
 
-The repo ships without a pre-built database (it would grow with personal notes).
-To seed an empty demo graph:
+The repo ships **without** a pre-built database (`*.db` is git-ignored — a real
+graph fills with personal notes). The cockpit, chat, and notes all work without
+it; the knowledge graph only powers spaced review and `traverse_graph`. Build the
+demo graph from the bundled seed data:
 
 ```bash
-cd kg
-npm install          # already done in step 1 if you followed in order
-# seed the demo data
-node main.js --db demo.db
-# (then, in another terminal or via Claude Code, run the seed commands
-#  described in kg/README.md, or point Claude Code at the kg-init skill)
+# from the repo root (kg/ deps installed in step 1)
+node scripts/seed-demo-kg.mjs            # imports kg/demo-seeds.json -> kg/demo.db
 ```
 
-The resulting file is `kg/demo.db`. Once it exists, `check-setup.mjs` will
-report it as present.
+This imports the 8 demo nodes with **full fidelity** — trust levels, verbatim
+quotes, sources, and metadata. Full-text (FTS5) search works immediately. For
+semantic / vector search, backfill embeddings afterward (downloads a ~560 MB
+model once):
+
+```bash
+node kg/scripts/backfill-embeddings.js --db kg/demo.db
+```
+
+Once `kg/demo.db` exists, `check-setup.mjs` reports it as present. In normal use
+you don't pre-seed at all — the coach writes knowledge into the graph **live**
+during a lesson via `store_knowledge`.
 
 > See `kg/README.md` (English) or `kg/README.zh-TW.md` (Traditional Chinese)
 > for the full API, trust rules, and `merge-db.js` usage.
