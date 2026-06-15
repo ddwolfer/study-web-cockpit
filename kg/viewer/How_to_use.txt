@@ -1,0 +1,12 @@
+以後要更新視覺化，跑一次 node knowledgeGraph/viewer/export-graph.js 再重新開 viewer.html 就好。
+
+用 HTTP server 開。在終端跑：
+
+```
+cd kg/viewer
+python -m http.server 8080
+```
+
+然後瀏覽器開 http://localhost:8080/viewer.html
+
+這樣就能正常載入 graph-data.json 了。

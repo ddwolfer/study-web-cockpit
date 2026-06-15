@@ -1,0 +1,20 @@
+{
+  "name": "multi-knowledge-graph",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Multi-knowledgeGraph MCP server — SQLite + sqlite-vec + FTS5 hybrid search with --db flag for per-domain/per-agent KG isolation within a single project",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@huggingface/transformers": "^3.6.0",
+    "@modelcontextprotocol/sdk": "^1.10.2",
+    "better-sqlite3": "^11.8.1",
+    "sqlite-vec": "^0.1.6",
+    "uuid": "^11.1.0",
+    "zod": "^3.24.3"
+  }
+}

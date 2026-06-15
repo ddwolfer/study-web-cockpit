@@ -1,0 +1,17 @@
+{
+  "_comment": "Copy this to .claude/settings.local.json on a new machine (the real file is gitignored). It trusts the project's MCP servers and pre-allows their tools so the study-web browser cockpit does not stall on a terminal permission prompt. Adjust to taste.",
+  "enabledMcpjsonServers": [
+    "knowledge-graph",
+    "gemini-video",
+    "study-web"
+  ],
+  "permissions": {
+    "allow": [
+      "mcp__knowledge-graph__*",
+      "mcp__gemini-video__*",
+      "mcp__study-web__*",
+      "Write(notes/**)",
+      "Bash(node scripts/check-setup.mjs)"
+    ]
+  }
+}

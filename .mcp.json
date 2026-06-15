@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "knowledge-graph": {
+      "command": "node",
+      "args": [
+        "kg/main.js",
+        "--db",
+        "kg/demo.db"
+      ]
+    },
+    "gemini-video": {
+      "command": "node",
+      "args": [
+        "mcp-gemini-video/server.js"
+      ],
+      "env": {
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}",
+        "LESSONS_DIR": "demo-lessons"
+      }
+    },
+    "study-web": {
+      "command": "node",
+      "args": [
+        "study-web/server.js"
+      ]
+    }
+  }
+}

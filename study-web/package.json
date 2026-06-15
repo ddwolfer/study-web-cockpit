@@ -1,0 +1,12 @@
+{
+  "name": "study-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local web cockpit bridging a browser (lecture notes + chat) to the Claude Code study-coach session via a claude/channel MCP server.",
+  "main": "server.js",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.2",
+    "ws": "^8.18.0"
+  }
+}

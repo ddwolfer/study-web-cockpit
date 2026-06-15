@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<title>Legal Knowledge Graph — 3D Explorer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; color: #e0e0e0; font-family: 'Segoe UI', system-ui, sans-serif; overflow: hidden; }
+
+  /* Side panel */
+  #panel {
+    position: fixed; top: 0; right: -420px; width: 420px; height: 100vh;
+    background: rgba(10, 10, 30, 0.92); backdrop-filter: blur(20px);
+    border-left: 1px solid rgba(100, 140, 255, 0.2);
+    transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 100; overflow-y: auto; padding: 28px 24px;
+  }
+  #panel.open { right: 0; }
+  #panel-close {
+    position: absolute; top: 12px; right: 16px;
+    background: none; border: none; color: #888; font-size: 24px; cursor: pointer;
+  }
+  #panel-close:hover { color: #fff; }
+  #panel h2 { font-size: 18px; margin-bottom: 6px; color: #8cb4ff; }
+  #panel .badge {
+    display: inline-block; padding: 2px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 600; margin-right: 6px; margin-bottom: 12px;
+  }
+  #panel .badge-type { background: rgba(100, 200, 255, 0.15); color: #6cc8ff; }
+  #panel .badge-trust { background: rgba(160, 120, 255, 0.15); color: #b89cff; }
+  #panel .badge-level { background: rgba(100, 255, 160, 0.15); color: #7cffb2; }
+  #panel .section { margin-top: 18px; }
+  #panel .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #666; margin-bottom: 6px; }
+  #panel .content { font-size: 14px; line-height: 1.7; color: #ccc; white-space: pre-wrap; }
+  #panel .quote { border-left: 3px solid #a078ff; padding-left: 12px; color: #b89cff; font-style: italic; }
+  #panel .edges-list { list-style: none; }
+  #panel .edges-list li {
+    padding: 8px 12px; margin-bottom: 6px; border-radius: 8px;
+    background: rgba(255,255,255,0.04); cursor: pointer; font-size: 13px;
+    transition: background 0.2s;
+  }
+  #panel .edges-list li:hover { background: rgba(100, 140, 255, 0.12); }
+  #panel .edge-type { color: #ffb86c; font-size: 11px; }
+  #panel .edge-target { color: #8cb4ff; }
+  #panel .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #panel .meta-item { font-size: 12px; }
+  #panel .meta-label { color: #666; }
+  #panel .meta-value { color: #aaa; }
+
+  /* Legend */
+  #legend {
+    position: fixed; bottom: 20px; left: 20px; z-index: 90;
+    background: rgba(10, 10, 30, 0.85); backdrop-filter: blur(12px);
+    border: 1px solid rgba(100, 140, 255, 0.15); border-radius: 12px;
+    padding: 16px 20px; font-size: 12px;
+  }
+  #legend h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #666; margin-bottom: 10px; }
+  .legend-row { display: flex; align-items: center; margin-bottom: 6px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 10px; flex-shrink: 0; }
+  .legend-line { width: 24px; height: 2px; margin-right: 10px; flex-shrink: 0; }
+
+  /* Top bar */
+  #topbar {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 90;
+    background: rgba(10, 10, 30, 0.8); backdrop-filter: blur(12px);
+    border: 1px solid rgba(100, 140, 255, 0.15); border-radius: 16px;
+    padding: 10px 24px; display: flex; align-items: center; gap: 16px;
+  }
+  #topbar .title { font-size: 14px; font-weight: 600; color: #8cb4ff; }
+  #topbar .stat { font-size: 12px; color: #666; }
+  #topbar .stat span { color: #aaa; }
+
+  /* Search */
+  #search-box { position: fixed; top: 16px; left: 20px; z-index: 90; }
+  #search-input {
+    background: rgba(10, 10, 30, 0.85); border: 1px solid rgba(100, 140, 255, 0.2);
+    border-radius: 10px; padding: 8px 14px; color: #ddd; font-size: 13px; width: 220px;
+    outline: none; backdrop-filter: blur(12px);
+  }
+  #search-input::placeholder { color: #555; }
+  #search-input:focus { border-color: rgba(100, 140, 255, 0.5); }
+
+  #hint { position: fixed; bottom: 20px; right: 20px; z-index: 90; font-size: 11px; color: #444; }
+
+  /* HTML labels overlay — not affected by WebGL bloom */
+  #labels-container {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 10;
+  }
+  .node-label {
+    position: absolute;
+    font-size: 11px; color: #fff;
+    text-shadow: 0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.7);
+    white-space: nowrap; transform: translate(-50%, -100%);
+    pointer-events: none; user-select: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="graph"></div>
+<div id="labels-container"></div>
+
+<div id="search-box">
+  <input id="search-input" type="text" placeholder="搜尋節點...">
+</div>
+
+<div id="topbar">
+  <div class="title">Legal Knowledge Graph</div>
+  <div class="stat">節點 <span id="stat-nodes">0</span></div>
+  <div class="stat">連結 <span id="stat-links">0</span></div>
+</div>
+
+<div id="panel">
+  <button id="panel-close">&times;</button>
+  <div id="panel-content"></div>
+</div>
+
+<div id="legend">
+  <h3>節點類型</h3>
+  <div class="legend-row"><div class="legend-dot" style="background:#ff6b6b"></div> rule 規則</div>
+  <div class="legend-row"><div class="legend-dot" style="background:#ffd93d"></div> observation 觀察</div>
+  <div class="legend-row"><div class="legend-dot" style="background:#6bcb77"></div> insight 洞察</div>
+  <div class="legend-row"><div class="legend-dot" style="background:#4d96ff"></div> procedure 程序</div>
+  <div class="legend-row"><div class="legend-dot" style="background:#ff6bff"></div> core 核心</div>
+  <div class="legend-row"><div class="legend-dot" style="background:#ff9f43"></div> preference 偏好</div>
+  <h3 style="margin-top:14px">邊類型</h3>
+  <div class="legend-row"><div class="legend-line" style="background:#ff9f43"></div> 必須先於</div>
+  <div class="legend-row"><div class="legend-line" style="background:#ff9f43"></div> 必須先讀</div>
+  <div class="legend-row"><div class="legend-line" style="background:#ff6bff"></div> 矛盾</div>
+  <div class="legend-row"><div class="legend-line" style="background:#ffd93d"></div> 細化</div>
+  <div class="legend-row"><div class="legend-line" style="background:#4d96ff"></div> 導致 / 蘊含</div>
+  <div class="legend-row"><div class="legend-line" style="background:#6bcb77"></div> 同領域相關</div>
+  <div class="legend-row"><div class="legend-line" style="background:#aaa"></div> 錯誤傾向</div>
+  <div class="legend-row"><div class="legend-line" style="background:#ff6b6b"></div> 修正動機</div>
+  <div class="legend-row"><div class="legend-line" style="background:#aaa"></div> 出現於</div>
+</div>
+
+<div id="hint">點擊節點查看詳情 · 右鍵拖曳旋轉 · 滾輪縮放</div>
+
+<script type="module">
+import ForceGraph3D from 'https://esm.sh/3d-force-graph@1.79.1';
+import { UnrealBloomPass } from 'https://esm.sh/three@0.175.0/examples/jsm/postprocessing/UnrealBloomPass.js';
+import * as THREE from 'https://esm.sh/three@0.175.0';
+
+// — Color maps —
+const TYPE_COLORS = {
+  rule: '#ff6b6b', observation: '#ffd93d', insight: '#6bcb77',
+  procedure: '#4d96ff', core: '#ff6bff', preference: '#ff9f43',
+};
+const EDGE_COLORS = {
+  reason_for: '#ff6b6b', aligns_to: '#6bcb77', refines: '#ffd93d',
+  causes: '#4d96ff', implies: '#4d96ff', must_precede: '#ff9f43',
+  contradicts: '#ff6bff', requires_reading: '#ff9f43',
+  observed_in: '#aaa', tends_to: '#aaa',
+};
+const EDGE_LABELS = {
+  must_precede: '必須先於', requires_reading: '必須先讀',
+  contradicts: '矛盾', refines: '細化',
+  causes: '導致', implies: '蘊含',
+  aligns_to: '同領域相關', tends_to: '錯誤傾向',
+  reason_for: '修正動機', observed_in: '出現於',
+};
+const TRUST_SIZE = { principle: 8, pattern: 5, inference: 3 };
+const LEVEL_SCALE = { 1: 1, 2: 1.3, 3: 1.7, 4: 2.2 };
+
+// — Load data —
+const res = await fetch('./graph-data.json');
+const graphData = await res.json();
+
+document.getElementById('stat-nodes').textContent = graphData.nodes.length;
+document.getElementById('stat-links').textContent = graphData.links.length;
+
+// — Node index —
+const nodeMap = {};
+graphData.nodes.forEach(n => { nodeMap[n.id] = n; });
+
+// — Adjacency —
+const neighbors = {};
+graphData.links.forEach(l => {
+  const sid = typeof l.source === 'object' ? l.source.id : l.source;
+  const tid = typeof l.target === 'object' ? l.target.id : l.target;
+  if (!neighbors[sid]) neighbors[sid] = new Set();
+  if (!neighbors[tid]) neighbors[tid] = new Set();
+  neighbors[sid].add(tid);
+  neighbors[tid].add(sid);
+});
+
+// — State —
+let highlightNodes = new Set();
+let highlightLinks = new Set();
+let selectedNode = null;
+
+// — Graph —
+const Graph = ForceGraph3D()(document.getElementById('graph'))
+  .backgroundColor('#000005')
+  .graphData(graphData)
+  // Nodes: only spheres, no labels (labels are HTML overlay)
+  .nodeVal(n => (TRUST_SIZE[n.trust] || 4) * (LEVEL_SCALE[n.memory_level] || 1))
+  .nodeColor(n => {
+    if (highlightNodes.size > 0 && !highlightNodes.has(n.id)) return '#222';
+    return TYPE_COLORS[n.type] || '#888';
+  })
+  .nodeOpacity(0.9)
+  .nodeLabel(() => '') // disable default tooltip
+  // Links
+  .linkWidth(l => highlightLinks.has(l) ? 2.5 : 1)
+  .linkColor(l => {
+    if (highlightLinks.size > 0 && !highlightLinks.has(l)) return 'rgba(255,255,255,0.03)';
+    return EDGE_COLORS[l.relation_type] || '#555';
+  })
+  .linkLabel(l => `${EDGE_LABELS[l.relation_type] || l.relation_type}${l.reasoning ? '：' + l.reasoning : ''}`)
+  .linkOpacity(0.6)
+  .linkDirectionalParticles(l => highlightLinks.has(l) ? 4 : 0)
+  .linkDirectionalParticleWidth(1.5)
+  .linkDirectionalParticleColor(l => EDGE_COLORS[l.relation_type] || '#888')
+  .linkDirectionalArrowLength(4)
+  .linkDirectionalArrowRelPos(1)
+  .linkDirectionalArrowColor(l => EDGE_COLORS[l.relation_type] || '#555')
+  .onNodeClick(handleNodeClick)
+  .onNodeHover(n => { document.body.style.cursor = n ? 'pointer' : 'default'; })
+  .onBackgroundClick(() => { clearHighlight(); closePanel(); })
+  .d3AlphaDecay(0.02)
+  .d3VelocityDecay(0.3);
+
+// — Custom node: sphere + glow (no label sprite) —
+Graph.nodeThreeObject(node => {
+  const color = TYPE_COLORS[node.type] || '#888';
+  const size = (TRUST_SIZE[node.trust] || 4) * (LEVEL_SCALE[node.memory_level] || 1);
+  const group = new THREE.Group();
+
+  const sphere = new THREE.Mesh(
+    new THREE.SphereGeometry(size * 0.6, 16, 16),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9 })
+  );
+  group.add(sphere);
+
+  const glow = new THREE.Mesh(
+    new THREE.SphereGeometry(size * 0.85, 16, 16),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.15 })
+  );
+  group.add(glow);
+
+  return group;
+});
+
+// — Bloom (only affects 3D objects, not HTML labels) —
+const bloomPass = new UnrealBloomPass(
+  new THREE.Vector2(window.innerWidth, window.innerHeight),
+  2.5, 0.8, 0.1
+);
+Graph.postProcessingComposer().addPass(bloomPass);
+
+// — HTML Labels: crisp text overlay, updated each frame —
+const labelsContainer = document.getElementById('labels-container');
+const labelElements = {};
+
+graphData.nodes.forEach(n => {
+  const el = document.createElement('div');
+  el.className = 'node-label';
+  el.textContent = n.name.length > 18 ? n.name.slice(0, 18) + '…' : n.name;
+  labelsContainer.appendChild(el);
+  labelElements[n.id] = el;
+});
+
+Graph.onEngineTick(() => {
+  const camera = Graph.camera();
+  graphData.nodes.forEach(n => {
+    const el = labelElements[n.id];
+    if (!el) return;
+    const coords = Graph.graph2ScreenCoords(n.x, n.y, n.z);
+    // Hide if behind camera
+    if (coords.z > 1) {
+      el.style.display = 'none';
+      return;
+    }
+    // Scale based on camera distance
+    const dx = n.x - camera.position.x;
+    const dy = n.y - camera.position.y;
+    const dz = n.z - camera.position.z;
+    const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+    const scale = Math.max(0.3, Math.min(2.5, 200 / dist));
+    el.style.display = '';
+    el.style.left = coords.x + 'px';
+    el.style.top = (coords.y - 12 * scale) + 'px';
+    el.style.transform = `translate(-50%, -100%) scale(${scale})`;
+    // Dim non-highlighted nodes
+    if (highlightNodes.size > 0 && !highlightNodes.has(n.id)) {
+      el.style.opacity = '0.15';
+    } else {
+      el.style.opacity = '1';
+    }
+  });
+});
+
+// — Click handler —
+function handleNodeClick(node) {
+  if (!node) return;
+  selectedNode = node;
+  highlightNodes.clear();
+  highlightLinks.clear();
+  highlightNodes.add(node.id);
+
+  const nbs = neighbors[node.id];
+  if (nbs) nbs.forEach(nid => highlightNodes.add(nid));
+
+  graphData.links.forEach(l => {
+    const sid = typeof l.source === 'object' ? l.source.id : l.source;
+    const tid = typeof l.target === 'object' ? l.target.id : l.target;
+    if (sid === node.id || tid === node.id) highlightLinks.add(l);
+  });
+
+  refreshVisuals();
+
+  Graph.cameraPosition(
+    { x: node.x + 120, y: node.y + 60, z: node.z + 120 },
+    { x: node.x, y: node.y, z: node.z },
+    1200
+  );
+  openPanel(node);
+}
+
+function clearHighlight() {
+  highlightNodes.clear();
+  highlightLinks.clear();
+  selectedNode = null;
+  refreshVisuals();
+}
+
+function refreshVisuals() {
+  Graph.nodeColor(Graph.nodeColor())
+    .linkWidth(Graph.linkWidth())
+    .linkColor(Graph.linkColor())
+    .linkDirectionalParticles(Graph.linkDirectionalParticles());
+}
+
+// — Panel —
+function openPanel(node) {
+  const panel = document.getElementById('panel');
+  const content = document.getElementById('panel-content');
+
+  const connectedEdges = [];
+  graphData.links.forEach(l => {
+    const sid = typeof l.source === 'object' ? l.source.id : l.source;
+    const tid = typeof l.target === 'object' ? l.target.id : l.target;
+    if (sid === node.id)
+      connectedEdges.push({ dir: '→', type: l.relation_type, targetId: tid, reasoning: l.reasoning });
+    else if (tid === node.id)
+      connectedEdges.push({ dir: '←', type: l.relation_type, targetId: sid, reasoning: l.reasoning });
+  });
+
+  const levelLabels = { 1: '新學', 2: '驗證中', 3: '鞏固', 4: '核心' };
+
+  content.innerHTML = `
+    <h2>${node.name}</h2>
+    <span class="badge badge-type">${node.type}</span>
+    <span class="badge badge-trust">${node.trust}</span>
+    <span class="badge badge-level">Lv${node.memory_level || 1} ${levelLabels[node.memory_level] || '新學'}</span>
+
+    <div class="section">
+      <div class="section-title">內容</div>
+      <div class="content">${node.content}</div>
+    </div>
+
+    ${node.quote ? `
+    <div class="section">
+      <div class="section-title">引用</div>
+      <div class="quote">${node.quote}</div>
+    </div>` : ''}
+
+    ${connectedEdges.length > 0 ? `
+    <div class="section">
+      <div class="section-title">連結 (${connectedEdges.length})</div>
+      <ul class="edges-list">
+        ${connectedEdges.map(e => {
+          const target = nodeMap[e.targetId];
+          const tName = target ? target.name : e.targetId.slice(0, 8);
+          return `<li data-id="${e.targetId}">
+            <span class="edge-type">${e.dir} ${EDGE_LABELS[e.type] || e.type}</span><br>
+            <span class="edge-target">${tName}</span>
+            ${e.reasoning ? `<br><span style="color:#666;font-size:11px">${e.reasoning}</span>` : ''}
+          </li>`;
+        }).join('')}
+      </ul>
+    </div>` : ''}
+
+    <div class="section">
+      <div class="section-title">屬性</div>
+      <div class="meta-grid">
+        <div class="meta-item"><div class="meta-label">存取次數</div><div class="meta-value">${node.access_count || 0}</div></div>
+        <div class="meta-item"><div class="meta-label">穩定性</div><div class="meta-value">${node.stability ? node.stability.toFixed(1) + ' 天' : '—'}</div></div>
+        <div class="meta-item"><div class="meta-label">建立</div><div class="meta-value">${node.created_at ? node.created_at.slice(0, 10) : '—'}</div></div>
+        <div class="meta-item"><div class="meta-label">更新</div><div class="meta-value">${node.updated_at ? node.updated_at.slice(0, 10) : '—'}</div></div>
+      </div>
+    </div>
+  `;
+
+  panel.classList.add('open');
+
+  content.querySelectorAll('.edges-list li').forEach(li => {
+    li.addEventListener('click', () => {
+      const targetNode = graphData.nodes.find(n => n.id === li.dataset.id);
+      if (targetNode) handleNodeClick(targetNode);
+    });
+  });
+}
+
+function closePanel() {
+  document.getElementById('panel').classList.remove('open');
+}
+
+document.getElementById('panel-close').addEventListener('click', closePanel);
+
+// — Search —
+document.getElementById('search-input').addEventListener('input', function() {
+  const q = this.value.trim().toLowerCase();
+  if (!q) { clearHighlight(); return; }
+
+  highlightNodes.clear();
+  highlightLinks.clear();
+
+  graphData.nodes.forEach(n => {
+    if (n.name.toLowerCase().includes(q) || n.content.toLowerCase().includes(q))
+      highlightNodes.add(n.id);
+  });
+
+  refreshVisuals();
+
+  if (highlightNodes.size === 1) {
+    const node = graphData.nodes.find(n => n.id === [...highlightNodes][0]);
+    if (node) Graph.cameraPosition(
+      { x: node.x + 100, y: node.y + 50, z: node.z + 100 },
+      { x: node.x, y: node.y, z: node.z }, 1000
+    );
+  }
+});
+
+// — Resize —
+window.addEventListener('resize', () => {
+  Graph.width(window.innerWidth).height(window.innerHeight);
+});
+</script>
+</body>
+</html>

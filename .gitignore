@@ -1,0 +1,45 @@
+# Dependencies — each sub-package installs its own
+node_modules/
+
+# Secrets — never commit API keys (use the .env.example templates)
+.env
+**/.env
+
+# Knowledge-graph databases — binary; build locally from seeds (see README)
+*.db
+*.db-wal
+*.db-shm
+
+# Local-only engine-source pointer
+kg/.engine-source
+
+# study-web runtime state (machine-local)
+study-web/state.json
+
+# Notes — NEVER commit copyrighted course material here. This repo ships ONLY
+# the original, hand-authored demo lesson under demo-lessons/. The notes/ tree
+# is ignored as a tripwire so derived course content can never sneak in.
+notes/
+
+# dual-plan rendered HTML — regenerated from plan.md by the dual-plan tool
+plans/**/plan.html
+plans/**/history/
+
+# Lecture media — keep the repo light. The ONLY video allowed is the short,
+# self-recorded demo clip under demo-lessons/.
+*.mp4
+!demo-lessons/**/*.mp4
+*.mov
+*.mkv
+*.webm
+*.srt
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+*.zip
+
+# OS cruft
+.DS_Store
+Thumbs.db

@@ -1,0 +1,1034 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>系統設計自習室</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@300;400;700&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #090d15;
+    --bg-2: #0d1220;
+    --panel: #10172a;
+    --panel-2: #151d33;
+    --line: #1f2940;
+    --line-soft: #1a2238;
+    --ink: #e8edf8;
+    --muted: #7e8aa5;
+    --faint: #4a5570;
+    --lamp: #f0b35e;          /* 閱讀燈琥珀 — 術語、重點 */
+    --lamp-dim: #8a6534;
+    --lamp-glow: rgba(240, 179, 94, .14);
+    --coach: #5fd4c2;         /* 教練識別色 — 青瓷 */
+    --coach-dim: rgba(95, 212, 194, .12);
+    --coach-line: rgba(95, 212, 194, .3);
+    --blue: #6f9be8;
+    --user-bg: rgba(240, 179, 94, .08);
+    --user-line: rgba(240, 179, 94, .25);
+    --code-bg: #0a0f1c;
+    --grid: rgba(111, 155, 232, .035);
+    --send-ink: #1a1206;
+    --shadow: 0 18px 50px rgba(0,0,0,.55), 0 0 40px rgba(240,179,94,.07);
+    --serif: "LXGW WenKai TC", "Noto Sans TC", serif;
+    --sans: "Noto Sans TC", -apple-system, "Microsoft JhengHei", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  html[data-theme="light"] {
+    --bg: #f3efe7;
+    --bg-2: #ece7db;
+    --panel: #fbf8f1;
+    --panel-2: #f1ebdf;
+    --line: #ded5c2;
+    --line-soft: #e7dfcf;
+    --ink: #2b2620;
+    --muted: #7a7263;
+    --faint: #a89e8a;
+    --lamp: #a36a10;
+    --lamp-dim: #cfa86a;
+    --lamp-glow: rgba(176, 111, 16, .1);
+    --coach: #178f7d;
+    --coach-dim: rgba(23, 143, 125, .1);
+    --coach-line: rgba(23, 143, 125, .3);
+    --blue: #3b66b8;
+    --user-bg: rgba(176, 111, 16, .07);
+    --user-line: rgba(176, 111, 16, .3);
+    --code-bg: #efe9da;
+    --grid: rgba(59, 102, 184, .05);
+    --send-ink: #fffaf0;
+    --shadow: 0 16px 44px rgba(80, 60, 20, .2);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font: 15px/1.85 var(--sans);
+    display: flex; flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  /* —— 藍圖網格 + 燈光氛圍 —— */
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      radial-gradient(900px 500px at 12% -10%, var(--coach-dim), transparent 60%),
+      radial-gradient(1000px 600px at 95% 105%, var(--lamp-glow), transparent 60%),
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 38px 38px, 38px 38px;
+  }
+  body::after { /* 細顆粒 */
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .35;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.025 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  header, main { position: relative; z-index: 1; }
+
+  ::selection { background: var(--lamp-glow); }
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--faint); }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  /* ================= header ================= */
+  header {
+    flex: none; display: flex; align-items: center; gap: 16px;
+    padding: 0 20px; height: 54px;
+    background: color-mix(in srgb, var(--bg-2) 88%, transparent);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(8px);
+  }
+  .brand { display: flex; align-items: baseline; gap: 10px; flex: none; }
+  .brand .mark {
+    font-family: var(--mono); font-size: 13px; color: var(--lamp);
+    border: 1px solid var(--lamp-dim); border-radius: 6px; padding: 2px 7px;
+    background: var(--lamp-glow); letter-spacing: 1px;
+  }
+  .brand h1 { font: 700 17px/1 var(--serif); margin: 0; letter-spacing: 2px; }
+  #crumb {
+    font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: .5px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+  }
+  #crumb b { color: var(--ink); font-weight: 500; }
+  #crumb .sep { color: var(--faint); margin: 0 7px; }
+  .spacer { flex: 1; }
+  .pill {
+    flex: none; display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 11.5px; color: var(--muted);
+    border: 1px solid var(--line); border-radius: 999px; padding: 4px 13px;
+    background: var(--panel);
+  }
+  .pulse { width: 8px; height: 8px; border-radius: 50%; background: #d05050; position: relative; }
+  .pulse.on { background: var(--coach); }
+  .pulse.on::after {
+    content: ""; position: absolute; inset: -4px; border-radius: 50%;
+    border: 1px solid var(--coach); opacity: .6; animation: ping 2s ease-out infinite;
+  }
+  @keyframes ping { from { transform: scale(.5); opacity: .7; } to { transform: scale(1.4); opacity: 0; } }
+  button.icon {
+    flex: none; background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 5px 11px; cursor: pointer; font: 13px var(--sans); transition: border-color .15s;
+  }
+  button.icon:hover { border-color: var(--lamp-dim); }
+
+  /* ================= layout ================= */
+  main { flex: 1; min-height: 0; display: grid; grid-template-columns: 64px 1.62fr 1fr; }
+  section { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+
+  /* —— 章節導航欄 —— */
+  #rail {
+    border-right: 1px solid var(--line); background: color-mix(in srgb, var(--bg-2) 70%, transparent);
+    display: flex; flex-direction: column; align-items: center; padding: 18px 0; gap: 6px;
+    overflow: visible;
+  }
+  #rail .ch {
+    width: 42px; height: 42px; border-radius: 11px; border: 1px solid transparent;
+    display: grid; place-items: center; cursor: pointer; position: relative;
+    font-family: var(--mono); font-size: 13px; color: var(--faint);
+    background: none; transition: all .18s; padding: 0;
+  }
+  #rail .ch:hover { color: var(--ink); border-color: var(--line); background: var(--panel); }
+  #rail .ch.on {
+    color: var(--lamp); border-color: var(--lamp-dim); background: var(--lamp-glow);
+    box-shadow: 0 0 18px rgba(240,179,94,.12);
+  }
+  #rail .ch.on::before {
+    content: ""; position: absolute; left: -12px; width: 3px; height: 22px;
+    background: var(--lamp); border-radius: 3px;
+  }
+  #rail .ch .zh {
+    position: absolute; left: 54px; top: 50%; transform: translateY(-50%) translateX(-6px);
+    white-space: nowrap; font-family: var(--serif); font-size: 13px; color: var(--ink);
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 4px 11px; opacity: 0; pointer-events: none; transition: all .18s; z-index: 30;
+  }
+  #rail .ch:hover .zh { opacity: 1; transform: translateY(-50%) translateX(0); }
+
+  /* ================= 閱讀面板 ================= */
+  #notes { overflow-y: auto; padding: 44px 56px 120px; }
+  #notes.empty { color: var(--muted); display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 32px; font-family: var(--serif); }
+  .doc { max-width: 780px; margin: 0 auto; position: relative; counter-reset: sec fig; }
+  .ghost {
+    position: absolute; right: -10px; top: -40px; z-index: 0;
+    font: 300 140px/1 var(--mono); color: transparent;
+    -webkit-text-stroke: 1px color-mix(in srgb, var(--blue) 16%, transparent);
+    letter-spacing: -6px; user-select: none; pointer-events: none;
+  }
+  .doc > * { position: relative; }
+  .doc h1 { font: 700 36px/1.3 var(--serif); margin: .1em 0 .5em; letter-spacing: 1px; }
+  .doc h2 {
+    display: flex; align-items: baseline; gap: 12px;
+    font: 700 21px/1.4 var(--serif); margin: 1.9em 0 .6em; letter-spacing: 1px;
+  }
+  .doc h2::before {
+    counter-increment: sec; content: "§" counter(sec, decimal-leading-zero);
+    font: 500 13px var(--mono); color: var(--lamp); letter-spacing: 1px;
+  }
+  .doc h2::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--line), transparent); }
+  .doc h3 { font: 700 16.5px var(--serif); margin: 1.3em 0 .4em; color: var(--blue); letter-spacing: .5px; }
+  .doc p, .doc li { margin: .55em 0; }
+  .doc li::marker { color: var(--lamp); }
+  .doc code { background: var(--code-bg); padding: .12em .45em; border-radius: 5px; font: .86em var(--mono); }
+  .doc pre { background: var(--code-bg); padding: 13px 16px; border-radius: 10px; overflow-x: auto; border: 1px solid var(--line); }
+  .doc pre code { background: none; padding: 0; }
+  .doc table {
+    width: 100%; border-collapse: separate; border-spacing: 0; margin: 1.1em 0;
+    border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+    background: color-mix(in srgb, var(--panel) 55%, transparent); font-size: 14.5px;
+  }
+  .doc th {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px; color: var(--muted);
+    text-align: left; padding: 10px 14px; background: var(--panel-2);
+    border-bottom: 1px solid var(--line); font-weight: 500;
+  }
+  .doc td { padding: 10px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  .doc tr:last-child td { border-bottom: none; }
+  .doc blockquote {
+    margin: 1.4em 0; border: 1px solid var(--lamp-dim); border-radius: 14px;
+    background: linear-gradient(160deg, var(--lamp-glow), transparent 70%);
+    padding: 14px 20px 14px 54px; position: relative; font-family: var(--serif); font-size: 15.5px;
+  }
+  .doc blockquote::before { content: "💡"; position: absolute; left: 18px; top: 14px; font-size: 19px; }
+  .doc blockquote p { margin: .3em 0; }
+
+  .fig {
+    margin: 1.3em 0; border: 1px solid var(--line); border-radius: 14px;
+    background: color-mix(in srgb, var(--panel) 60%, transparent); padding: 16px 10px 6px; text-align: center;
+  }
+  .fig .mermaid { background: transparent; }
+  .fig .cap {
+    counter-increment: fig; font: 500 11px var(--mono); letter-spacing: 2px; color: var(--faint);
+    text-align: left; padding: 8px 12px 4px; margin-top: 8px; border-top: 1px dashed var(--line);
+  }
+  .fig .cap::before { content: "FIG." counter(fig); }
+  .bubble .fig { padding: 10px 4px 2px; }
+
+  .term {
+    color: var(--lamp); cursor: pointer; padding: 0 1px; border-radius: 3px;
+    background-image: linear-gradient(90deg, var(--lamp-dim) 50%, transparent 50%);
+    background-size: 8px 1.5px; background-repeat: repeat-x; background-position: 0 100%;
+    transition: all .15s;
+  }
+  .term:hover, .term:focus { background-color: var(--lamp-glow); box-shadow: 0 0 14px rgba(240,179,94,.18); outline: none; }
+
+  /* —— 影片播放器 (ch07 影片實作課) —— */
+  #video-panel { margin: 0 0 26px; }
+  #video-panel video {
+    width: 100%; max-height: 62vh; border-radius: 14px; border: 1px solid var(--line);
+    background: #000; display: block; box-shadow: var(--shadow);
+  }
+  #video-panel .vbar {
+    display: flex; align-items: center; gap: 14px; margin-top: 9px; flex-wrap: wrap;
+    font: 400 12px var(--mono); color: var(--muted);
+  }
+  #video-panel .vbar label { display: inline-flex; align-items: center; gap: 7px; }
+  #video-panel select, #video-panel .pipbtn {
+    background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 7px; padding: 3px 9px; font: 400 12px var(--mono); cursor: pointer; transition: border-color .15s;
+  }
+  #video-panel select:hover, #video-panel .pipbtn:hover { border-color: var(--lamp-dim); }
+  .doc button.ts {
+    font: 500 .85em var(--mono); color: var(--lamp); cursor: pointer;
+    background: var(--lamp-glow); border: 1px solid var(--lamp-dim);
+    border-radius: 6px; padding: 0 5px; margin: 0 2px; line-height: 1.5; vertical-align: baseline;
+    transition: all .13s;
+  }
+  .doc button.ts:hover { background: var(--lamp); color: var(--send-ink); box-shadow: 0 0 12px rgba(240,179,94,.3); }
+
+  /* ================= 課程目錄(歡迎畫面) ================= */
+  .wel { max-width: 700px; margin: 8px auto 0; animation: rise .5s ease-out both; }
+  .wel-hero { text-align: center; margin-bottom: 28px; }
+  .wel-hero .kicker { font: 500 12px var(--mono); letter-spacing: 3px; color: var(--blue); margin-bottom: 10px; }
+  .wel-hero h1 { font: 700 30px/1.3 var(--serif); margin: 0 0 8px; letter-spacing: 2px; }
+  .wel-hero p { color: var(--muted); margin: 0; font-size: 14px; font-family: var(--serif); }
+  .wel .back {
+    display: block; width: 100%; text-align: left; margin-bottom: 14px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    color: var(--muted); font: 400 13px var(--mono); padding: 9px 16px; cursor: pointer; transition: all .15s;
+  }
+  .wel .back:hover { color: var(--lamp); border-color: var(--lamp-dim); }
+  .wel details {
+    background: color-mix(in srgb, var(--panel) 80%, transparent); border: 1px solid var(--line);
+    border-radius: 13px; margin: 10px 0; overflow: hidden;
+  }
+  .wel summary {
+    cursor: pointer; padding: 11px 18px; list-style: none;
+    display: flex; align-items: center; gap: 12px; user-select: none; transition: background .15s;
+  }
+  .wel summary::-webkit-details-marker { display: none; }
+  .wel summary .no { font: 500 13px var(--mono); color: var(--blue); letter-spacing: 1px; }
+  .wel summary .nm { font: 700 15.5px var(--serif); letter-spacing: 1px; }
+  .wel summary:hover { background: var(--panel-2); }
+  .wel summary .chip { margin-left: auto; }
+  .chip {
+    font: 400 11.5px var(--mono); color: var(--lamp); background: var(--lamp-glow);
+    border: 1px solid var(--lamp-dim); border-radius: 999px; padding: 1px 9px; white-space: nowrap;
+  }
+  .lesson-list { border-top: 1px solid var(--line); padding: 7px; }
+  .lesson-row {
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+    background: none; border: none; color: var(--ink); font: 400 14px var(--sans);
+    padding: 8px 13px; border-radius: 9px; cursor: pointer; transition: background .12s;
+  }
+  .lesson-row:hover { background: var(--lamp-glow); }
+  .lesson-row .chip { margin-left: auto; }
+  .wel-hint { text-align: center; color: var(--faint); font: 400 12px var(--mono); margin: 20px 0 30px; letter-spacing: .5px; }
+
+  /* ================= 聊天面板 ================= */
+  #chat { border-left: 1px solid var(--line); background: color-mix(in srgb, var(--bg-2) 60%, transparent); }
+  .chat-head {
+    flex: none; display: flex; align-items: center; gap: 10px;
+    padding: 11px 18px; border-bottom: 1px solid var(--line);
+  }
+  .coach-mark {
+    width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center;
+    background: var(--coach-dim); border: 1px solid var(--coach-line); font-size: 16px; flex: none;
+  }
+  .chat-head .who b { font: 700 15px var(--serif); letter-spacing: 1px; }
+  .chat-head .who span { display: block; font: 400 11px var(--mono); color: var(--muted); letter-spacing: .5px; }
+
+  #log { flex: 1; overflow-y: auto; padding: 20px 18px; display: flex; flex-direction: column; gap: 15px; }
+  #log.empty { color: var(--muted); display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 32px; font-family: var(--serif); }
+  .msg { display: flex; gap: 10px; animation: rise .3s ease-out both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .msg .ava {
+    flex: none; width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center;
+    background: var(--coach-dim); border: 1px solid var(--coach-line); font-size: 13.5px; margin-top: 2px;
+  }
+  .bubble {
+    min-width: 0; max-width: 100%; padding: 10px 15px; border-radius: 4px 14px 14px 14px;
+    background: var(--panel); border: 1px solid var(--line); font-size: 14.5px; line-height: 1.8;
+    overflow-wrap: anywhere;
+  }
+  .msg.user { justify-content: flex-end; }
+  .msg.user .bubble {
+    border-radius: 14px 4px 14px 14px; background: var(--user-bg); border-color: var(--user-line); max-width: 88%;
+    white-space: pre-wrap;
+  }
+  .msg.system { justify-content: center; }
+  .msg.system .bubble {
+    background: none; border: none; color: var(--faint); font: 400 11.5px var(--mono);
+    letter-spacing: 1px; text-align: center;
+  }
+  .bubble > :first-child { margin-top: 0; } .bubble > :last-child { margin-bottom: 0; }
+  .bubble h1,.bubble h2,.bubble h3 { font: 700 15px var(--serif); margin: .6em 0 .3em; }
+  .bubble pre { background: var(--code-bg); padding: 10px; border-radius: 8px; overflow-x: auto; }
+  .bubble code { background: var(--code-bg); padding: .1em .3em; border-radius: 4px; font: .86em var(--mono); }
+  .bubble table { border-collapse: collapse; font-size: 13.5px; }
+  .bubble th,.bubble td { border: 1px solid var(--line); padding: 4px 8px; }
+  .bubble blockquote {
+    margin: .6em 0; padding: 7px 12px; border-left: 2px solid var(--coach);
+    background: var(--coach-dim); border-radius: 0 9px 9px 0; font-size: 13.5px;
+  }
+  .bubble li::marker { color: var(--lamp); }
+
+  /* thinking indicator */
+  .msg.thinking .bubble { display: flex; align-items: center; gap: 11px; color: var(--muted); flex-wrap: wrap; }
+  .dots { display: inline-flex; gap: 4px; }
+  .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--coach); animation: hop 1.2s infinite ease-in-out; }
+  .dots i:nth-child(2) { animation-delay: .15s; } .dots i:nth-child(3) { animation-delay: .3s; }
+  @keyframes hop { 0%,60%,100% { transform: none; opacity: .35; } 30% { transform: translateY(-5px); opacity: 1; } }
+  .think-t { font: 400 12px var(--mono); letter-spacing: .5px; }
+  .think-hint { font: 400 11px var(--mono); color: var(--faint); width: 100%; }
+
+  /* ================= 輸入區 ================= */
+  .chat-foot { flex: none; padding: 12px 14px 14px; border-top: 1px solid var(--line); }
+  .quickies { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .quickies button {
+    font: 400 12px var(--mono); color: var(--muted); background: var(--panel);
+    border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; cursor: pointer; transition: all .15s;
+  }
+  .quickies button:hover { color: var(--lamp); border-color: var(--lamp-dim); background: var(--lamp-glow); }
+  .inputrow { display: flex; gap: 9px; }
+  #input {
+    flex: 1; resize: none; min-height: 46px; max-height: 160px; padding: 11px 14px;
+    background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 12px;
+    font: 14.5px/1.6 var(--sans); transition: all .18s;
+  }
+  #input:focus { outline: none; border-color: var(--lamp-dim); box-shadow: 0 0 0 3px var(--lamp-glow); }
+  .send {
+    border: 1px solid var(--lamp-dim); background: linear-gradient(150deg, rgba(240,179,94,.22), rgba(240,179,94,.08));
+    color: var(--lamp); font: 700 14px var(--serif); letter-spacing: 3px;
+    border-radius: 12px; padding: 0 18px; cursor: pointer; transition: all .18s;
+  }
+  html[data-theme="light"] .send { background: linear-gradient(150deg, rgba(176,111,16,.18), rgba(176,111,16,.06)); }
+  .send:hover { box-shadow: 0 0 22px rgba(240,179,94,.25); transform: translateY(-1px); }
+
+  /* ================= 術語卡 ================= */
+  #card {
+    display: none; position: fixed; z-index: 60; width: 340px; max-width: 92vw;
+    background: linear-gradient(170deg, var(--panel-2), var(--panel));
+    border: 1px solid var(--lamp-dim); border-radius: 16px; padding: 15px 18px 13px;
+    box-shadow: var(--shadow); animation: pop .16s ease-out both;
+  }
+  @keyframes pop { from { opacity: 0; transform: translateY(6px) scale(.97); } to { opacity: 1; transform: none; } }
+  #card .c-tag { font: 500 10.5px var(--mono); letter-spacing: 2.5px; color: var(--faint); margin-bottom: 5px; }
+  #card .c-term { font: 700 17px var(--serif); color: var(--lamp); letter-spacing: 1px; margin-bottom: 7px; }
+  #card .c-body { font-size: 13.8px; line-height: 1.75; }
+  #card .c-foot { display: flex; align-items: center; margin-top: 12px; gap: 10px; }
+  #card .deeper {
+    border: none; border-radius: 9px; padding: 7px 14px; cursor: pointer;
+    font: 700 13px var(--serif); letter-spacing: 1px; color: var(--send-ink);
+    background: linear-gradient(135deg, var(--lamp), #e09543); transition: all .15s;
+  }
+  #card .deeper:hover { box-shadow: 0 0 18px rgba(240,179,94,.4); transform: translateY(-1px); }
+  #card .esc { font: 400 11px var(--mono); color: var(--faint); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><span class="mark">SD</span><h1>系統設計自習室</h1></div>
+  <span id="crumb">尚未開課 — 從左邊目錄挑一課</span>
+  <span class="spacer"></span>
+  <span class="pill"><span class="pulse" id="dot"></span><span id="status">連線中…</span></span>
+  <button class="icon" id="theme" title="切換深淺色">☀ / ☾</button>
+</header>
+
+<main>
+  <nav id="rail"></nav>
+
+  <section id="reading">
+    <div id="notes" class="empty">載入課程目錄中…</div>
+  </section>
+
+  <section id="chat">
+    <div class="chat-head">
+      <div class="coach-mark">📐</div>
+      <div class="who"><b>陪讀教練</b><span>system-design coach · claude</span></div>
+    </div>
+    <div id="log" class="empty">跟教練對話。看不懂的術語,點左邊筆記裡琥珀色的字。</div>
+    <div class="chat-foot">
+      <div class="quickies">
+        <button type="button" id="qNext">▶ 下一課</button>
+        <button type="button" id="qPreload">⚡ 預載接下來兩課</button>
+        <button type="button" id="qQuiz">✎ 考我 3 題</button>
+      </div>
+      <form id="form">
+        <div class="inputrow">
+          <textarea id="input" placeholder="問問題,或「上 X 課」… (Enter 送出, Shift+Enter 換行)" autofocus></textarea>
+          <button type="submit" class="send">送出</button>
+        </div>
+      </form>
+    </div>
+  </section>
+</main>
+
+<div id="card">
+  <div class="c-tag">TERM · FROM KNOWLEDGE GRAPH</div>
+  <div class="c-term" id="cardTerm"></div>
+  <div class="c-body" id="cardBody"></div>
+  <div class="c-foot">
+    <button class="deeper" id="cardDeeper">在課程脈絡中深入 →</button>
+    <span class="esc">ESC 關閉</span>
+  </div>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const GLOSS = {};                       // 全域術語表 (notes + chat 累積)
+const TERM_RE = /\[\[([\w-]+)(?:\|([^\]]+))?\]\]/g;
+const FALLBACK_EMPTY = "在右邊輸入「上 03_基本觀念/04. CAP Theorem｜CAP 定理」之類的指令,我就把那一課重寫成可點筆記放這裡。";
+
+// ---------- theme ----------
+const savedTheme = localStorage.getItem("sw-theme") || "dark";
+document.documentElement.dataset.theme = savedTheme;
+function mermaidConfig() {
+  const light = document.documentElement.dataset.theme === "light";
+  const v = getComputedStyle(document.documentElement);
+  const pick = name => v.getPropertyValue(name).trim();
+  return {
+    startOnLoad: false, securityLevel: "strict", theme: "base",
+    themeVariables: {
+      darkMode: !light, background: "transparent",
+      primaryColor: pick("--panel-2"), primaryTextColor: pick("--ink"),
+      primaryBorderColor: pick("--blue"), lineColor: pick("--muted"),
+      secondaryColor: pick("--panel"), tertiaryColor: pick("--panel"),
+      fontFamily: "'Noto Sans TC', sans-serif", fontSize: "14px",
+      edgeLabelBackground: pick("--bg-2"), nodeBorder: pick("--blue"),
+      clusterBkg: pick("--panel"),
+    },
+  };
+}
+$("theme").onclick = () => {
+  const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem("sw-theme", next);
+  mermaid.initialize(mermaidConfig());
+};
+
+marked.setOptions({ gfm: true, breaks: true });
+mermaid.initialize(mermaidConfig());
+
+// ---------- markdown / glossary / mermaid / terms ----------
+function renderMarkdown(md, inline) {
+  // Guard: a term marker immediately followed by parens — [[id|surface]](…) —
+  // is otherwise parsed by marked as a markdown link [text](url), which eats the
+  // [[ ]] and leaves a dead anchor instead of a clickable term. Insert a
+  // zero-width space between ]] and ( so the link syntax never matches; the
+  // term hydrator still sees the [[ ]] and the ZWSP is invisible to the reader.
+  md = (md || "").replace(/\]\]\(/g, "]]​(");
+  const dirty = inline ? marked.parseInline(md) : marked.parse(md);
+  return DOMPurify.sanitize(dirty, { ADD_ATTR: ["target"] });
+}
+
+function extractGlossary(md) {
+  const m = (md || "").match(/```glossary\s*\n([\s\S]*?)```/);
+  if (!m) return { rest: md || "" };
+  try { Object.assign(GLOSS, JSON.parse(m[1])); }
+  catch (e) { console.warn("glossary JSON parse failed:", e); }
+  return { rest: md.slice(0, m.index) + md.slice(m.index + m[0].length) };
+}
+
+function hydrateMermaid(root) {
+  const nodes = [];
+  root.querySelectorAll("pre > code.language-mermaid").forEach(code => {
+    const fig = document.createElement("div");
+    fig.className = "fig";
+    const div = document.createElement("div");
+    div.className = "mermaid";
+    div.textContent = code.textContent;       // raw source (entities decoded)
+    const cap = document.createElement("div");
+    cap.className = "cap";                    // FIG.n 由 CSS counter 編號
+    fig.appendChild(div); fig.appendChild(cap);
+    code.parentElement.replaceWith(fig);
+    nodes.push(div);
+  });
+  if (nodes.length) { try { mermaid.run({ nodes }); } catch (e) { console.warn("mermaid:", e); } }
+}
+
+function hydrateTerms(root) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(n) {
+      if (!n.nodeValue || n.nodeValue.indexOf("[[") < 0) return NodeFilter.FILTER_REJECT;
+      for (let p = n.parentElement; p && p !== root; p = p.parentElement) {
+        const tag = p.tagName;
+        if (tag === "CODE" || tag === "PRE" || tag === "SCRIPT" || tag === "STYLE" ||
+            p.classList.contains("mermaid") || p.classList.contains("term"))
+          return NodeFilter.FILTER_REJECT;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  const targets = [];
+  while (walker.nextNode()) targets.push(walker.currentNode);
+  targets.forEach(node => {
+    const text = node.nodeValue;
+    TERM_RE.lastIndex = 0;
+    if (!TERM_RE.test(text)) return;
+    TERM_RE.lastIndex = 0;
+    const frag = document.createDocumentFragment();
+    let last = 0, m;
+    while ((m = TERM_RE.exec(text))) {
+      const [full, id, surface] = m;
+      if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+      const label = surface || (GLOSS[id] && GLOSS[id].term) || id;
+      if (GLOSS[id]) {
+        const span = document.createElement("span");
+        span.className = "term";
+        span.dataset.defId = id;
+        span.tabIndex = 0;
+        span.setAttribute("role", "button");
+        span.textContent = label;
+        frag.appendChild(span);
+      } else {
+        frag.appendChild(document.createTextNode(label));
+      }
+      last = m.index + full.length;
+    }
+    if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+    node.parentNode.replaceChild(frag, node);
+  });
+}
+
+// ---------- clickable video timestamps — [MM:SS]/(MM:SS), optional H: ----------
+// ch07 video-notes use BOTH conventions: 02/07/10 wrap timestamps in [..], the
+// other 11 lessons use (..). Match either delimiter so every lesson lights up.
+const TS_RE = /[[(](\d{1,2}):([0-5]\d)(?::([0-5]\d))?[\])]/g;
+// Turn those markers into seek buttons. Same TreeWalker discipline as
+// hydrateTerms (skip code/pre/term/mermaid).
+function hydrateTimestamps(root) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(n) {
+      if (!n.nodeValue || (n.nodeValue.indexOf("[") < 0 && n.nodeValue.indexOf("(") < 0)) return NodeFilter.FILTER_REJECT;
+      for (let p = n.parentElement; p && p !== root; p = p.parentElement) {
+        const tag = p.tagName;
+        if (tag === "CODE" || tag === "PRE" || tag === "SCRIPT" || tag === "STYLE" ||
+            (p.classList && (p.classList.contains("mermaid") || p.classList.contains("term") || p.classList.contains("ts"))))
+          return NodeFilter.FILTER_REJECT;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  const targets = [];
+  while (walker.nextNode()) targets.push(walker.currentNode);
+  targets.forEach(node => {
+    const text = node.nodeValue;
+    TS_RE.lastIndex = 0;
+    if (!TS_RE.test(text)) return;
+    TS_RE.lastIndex = 0;
+    const frag = document.createDocumentFragment();
+    let last = 0, m;
+    while ((m = TS_RE.exec(text))) {
+      const [full, a, b, c] = m;
+      if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+      const secs = c != null ? (+a) * 3600 + (+b) * 60 + (+c) : (+a) * 60 + (+b);
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.className = "ts"; btn.dataset.t = String(secs);
+      btn.textContent = full; btn.title = "跳到 " + full;
+      frag.appendChild(btn);
+      last = m.index + full.length;
+    }
+    if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+    node.parentNode.replaceChild(frag, node);
+  });
+}
+
+// ---------- reading panel ----------
+let notesShown = false;   // 真正的課堂筆記已顯示(目錄畫面不可覆蓋)
+let lastLesson = "";      // 目前這課(算「下一課」用)
+let lastMarkdown = "";    // 目錄看完要「回到講義」用
+
+function setCrumb(lesson) {
+  const c = $("crumb");
+  if (!lesson) { c.textContent = "尚未開課 — 從左邊目錄挑一課"; return; }
+  c.innerHTML = "";
+  const parts = String(lesson).split("/");
+  parts.forEach((p, i) => {
+    if (i) { const s = document.createElement("span"); s.className = "sep"; s.textContent = "/"; c.appendChild(s); }
+    const el = document.createElement(i === parts.length - 1 ? "b" : "span");
+    el.textContent = p.replace(/_/g, " ");
+    c.appendChild(el);
+  });
+}
+
+function renderNotes(markdown, lesson) {
+  const { rest } = extractGlossary(markdown);
+  notesShown = true;
+  lastLesson = lesson || lastLesson;
+  lastMarkdown = markdown;
+  setCrumb(lastLesson);
+  markRailActive(lastLesson);
+  const notes = $("notes");
+  notes.classList.remove("empty");
+  const doc = document.createElement("div");
+  doc.className = "doc";
+  // 幽靈課號:從課名抓最後一組「NN.」數字
+  const nums = [...String(lastLesson).matchAll(/(\d+)\./g)];
+  if (nums.length) {
+    const g = document.createElement("div");
+    g.className = "ghost";
+    g.textContent = nums[nums.length - 1][1].padStart(2, "0");
+    doc.appendChild(g);
+  }
+  const body = document.createElement("div");
+  body.innerHTML = renderMarkdown(rest, false);
+  doc.appendChild(body);
+  notes.innerHTML = "";
+  notes.appendChild(doc);
+  hydrateMermaid(doc);
+  hydrateTerms(doc);
+  mountVideo(doc, lastLesson);
+  notes.scrollTop = 0;
+}
+
+// ---------- video panel (ch07 影片實作課) ----------
+// Concept lessons (03-06) have no video → /api/video 404s → no player mounts.
+// Async: builds the doc synchronously, then prepends the player once the lookup
+// returns (guarded by doc.isConnected so a fast lesson-switch can't double-mount).
+async function mountVideo(doc, lesson) {
+  const name = String(lesson || "").split("/").pop();
+  if (!name) return;
+  let info = null;
+  try {
+    const r = await fetch("/api/video?lesson=" + encodeURIComponent(name));
+    if (r.ok) info = await r.json();
+  } catch (_) { /* no video — concept lesson */ }
+  if (!info || !info.src || !doc.isConnected) return;
+
+  const panel = document.createElement("div");
+  panel.id = "video-panel";
+  const v = document.createElement("video");
+  v.controls = true; v.preload = "metadata"; v.src = info.src; v.playsInline = true;
+
+  // resume where you left off (per-lesson); don't restore right at the end
+  const key = "sw-pos:" + name;
+  v.addEventListener("loadedmetadata", () => {
+    const p = parseFloat(localStorage.getItem(key) || "0");
+    if (p > 0 && isFinite(v.duration) && p < v.duration - 5) v.currentTime = p;
+  });
+  let lastSave = 0;
+  v.addEventListener("timeupdate", () => {
+    const now = Date.now();
+    if (now - lastSave > 5000) { lastSave = now; try { localStorage.setItem(key, String(v.currentTime)); } catch (_) {} }
+  });
+  v.addEventListener("ended", () => { try { localStorage.removeItem(key); } catch (_) {} });
+
+  const bar = document.createElement("div");
+  bar.className = "vbar";
+  const lab = document.createElement("label");
+  lab.appendChild(document.createTextNode("速度"));
+  const sel = document.createElement("select");
+  [["0.75", "0.75×"], ["1", "1×"], ["1.25", "1.25×"], ["1.5", "1.5×"], ["2", "2×"]].forEach(([val, txt]) => {
+    const o = document.createElement("option"); o.value = val; o.textContent = txt;
+    if (val === "1") o.selected = true; sel.appendChild(o);
+  });
+  sel.onchange = () => { v.playbackRate = parseFloat(sel.value); };
+  lab.appendChild(sel); bar.appendChild(lab);
+  if (document.pictureInPictureEnabled) {
+    const pip = document.createElement("button");
+    pip.type = "button"; pip.className = "pipbtn"; pip.textContent = "⧉ 子母畫面";
+    pip.onclick = () => { v.requestPictureInPicture().catch(() => {}); };
+    bar.appendChild(pip);
+  }
+  const hint = document.createElement("span");
+  hint.textContent = "點筆記裡的時間戳可跳播";
+  bar.appendChild(hint);
+
+  panel.appendChild(v); panel.appendChild(bar);
+  const ghost = doc.querySelector(".ghost");
+  if (ghost && ghost.nextSibling) doc.insertBefore(panel, ghost.nextSibling);
+  else doc.insertBefore(panel, doc.firstChild);
+
+  hydrateTimestamps(doc);   // make [MM:SS] in the notes clickable → seek
+}
+
+// Load a cached lesson's web-notes directly from disk — no LLM round-trip.
+// The server also broadcasts a `notes` event, so other tabs + refresh follow.
+async function openCachedLesson(chapter, lesson) {
+  try {
+    const r = await fetch("/api/notes?chapter=" + encodeURIComponent(chapter) +
+                          "&lesson=" + encodeURIComponent(lesson));
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const data = await r.json();
+    renderNotes(data.markdown, lesson);
+  } catch (err) {
+    // Fall back to asking the coach if the file can't be read.
+    sendText("上 " + chapter + "/" + lesson);
+  }
+}
+
+// ---------- 課程目錄 + 章節導航欄 ----------
+let CATALOG = [];   // [{name, lessons:[{name, cached}]}]
+
+async function fetchCatalog() {
+  try {
+    const r = await fetch("/api/lessons");
+    CATALOG = (await r.json()).chapters || [];
+  } catch (_) { CATALOG = []; }
+  buildRail();
+  return CATALOG;
+}
+
+function chapterNo(name) { const m = String(name).match(/^(\d+)/); return m ? m[1] : "·"; }
+
+function buildRail() {
+  const rail = $("rail");
+  rail.innerHTML = "";
+  for (const ch of CATALOG) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "ch"; b.dataset.ch = ch.name;
+    b.textContent = chapterNo(ch.name);
+    const tip = document.createElement("span");
+    tip.className = "zh";
+    const cachedN = ch.lessons.filter(l => l.cached).length;
+    tip.textContent = ch.name.replace(/^\d+_/, "") + " · " + ch.lessons.length + " 課" + (cachedN ? " · ⚡" + cachedN : "");
+    b.appendChild(tip);
+    b.onclick = () => showCatalog(ch.name);
+    rail.appendChild(b);
+  }
+  markRailActive(lastLesson);
+}
+
+function markRailActive(lesson) {
+  const str = String(lesson || "");
+  document.querySelectorAll("#rail .ch").forEach(b => {
+    b.classList.toggle("on", !!b.dataset.ch && str.includes(b.dataset.ch));
+  });
+}
+
+// openChapter:要展開的章;省略時 = 預設(有⚡的章展開)
+async function showCatalog(openChapter) {
+  if (!CATALOG.length) await fetchCatalog();
+  const notes = $("notes");
+  if (!CATALOG.length) {
+    if (!notesShown || !openChapter) { notes.classList.add("empty"); notes.textContent = FALLBACK_EMPTY; }
+    return;
+  }
+  notes.classList.remove("empty");
+  notes.innerHTML = "";
+  const wel = document.createElement("div");
+  wel.className = "wel";
+
+  const hero = document.createElement("div");
+  hero.className = "wel-hero";
+  hero.innerHTML = '<div class="kicker">COURSE INDEX /// SYSTEM DESIGN</div><h1>今天上哪一課?</h1>' +
+    '<p>點一課直接開始 — <span class="chip">⚡ 已預載</span> 秒開,其他課要先備課(幾分鐘)。</p>';
+  wel.appendChild(hero);
+
+  if (notesShown && lastMarkdown) {
+    const back = document.createElement("button");
+    back.type = "button"; back.className = "back";
+    back.textContent = "← 回到目前講義:" + lastLesson;
+    back.onclick = () => renderNotes(lastMarkdown, lastLesson);
+    wel.appendChild(back);
+  }
+
+  for (const ch of CATALOG) {
+    const det = document.createElement("details");
+    const cachedN = ch.lessons.filter(l => l.cached).length;
+    det.open = openChapter ? ch.name === openChapter : cachedN > 0;
+    const sum = document.createElement("summary");
+    const no = document.createElement("span"); no.className = "no"; no.textContent = chapterNo(ch.name);
+    const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = ch.name.replace(/^\d+_/, "");
+    sum.appendChild(no); sum.appendChild(nm);
+    if (cachedN > 0) {
+      const chip = document.createElement("span"); chip.className = "chip";
+      chip.textContent = "⚡ " + cachedN + "/" + ch.lessons.length;
+      sum.appendChild(chip);
+    }
+    det.appendChild(sum);
+    const list = document.createElement("div");
+    list.className = "lesson-list";
+    for (const l of ch.lessons) {
+      const row = document.createElement("button");
+      row.type = "button"; row.className = "lesson-row";
+      row.appendChild(document.createTextNode(l.name));
+      if (l.cached) { const c = document.createElement("span"); c.className = "chip"; c.textContent = "⚡"; row.appendChild(c); }
+      // Cached lessons load their web-notes directly (instant, no LLM round-trip);
+      // only uncached lessons ask the coach to prepare them.
+      row.onclick = () => l.cached ? openCachedLesson(ch.name, l.name) : sendText("上 " + ch.name + "/" + l.name);
+      list.appendChild(row);
+    }
+    det.appendChild(list);
+    wel.appendChild(det);
+  }
+  const hint = document.createElement("div");
+  hint.className = "wel-hint";
+  hint.textContent = "也可以直接在右邊聊天 — 預載、提問、考試都行。";
+  wel.appendChild(hint);
+  notes.appendChild(wel);
+  notes.scrollTop = 0;
+}
+
+// ---------- chat panel ----------
+const log = $("log");
+function clearEmpty() { log.classList.remove("empty"); }
+function scrollLog() { log.scrollTop = log.scrollHeight; }
+function addUser(text) {
+  clearEmpty();
+  const row = document.createElement("div"); row.className = "msg user";
+  const b = document.createElement("div"); b.className = "bubble"; b.textContent = text;
+  row.appendChild(b); log.appendChild(row); scrollLog();
+}
+function coachAva() {
+  const a = document.createElement("div"); a.className = "ava"; a.textContent = "📐"; return a;
+}
+function addAssistant(text) {
+  clearEmpty();
+  const { rest } = extractGlossary(text);
+  const row = document.createElement("div"); row.className = "msg bot";
+  const b = document.createElement("div"); b.className = "bubble";
+  b.innerHTML = renderMarkdown(rest, false);
+  row.appendChild(coachAva()); row.appendChild(b); log.appendChild(row);
+  hydrateMermaid(b); hydrateTerms(b); scrollLog();
+}
+function addSystem(text) {
+  clearEmpty();
+  const row = document.createElement("div"); row.className = "msg system";
+  const b = document.createElement("div"); b.className = "bubble"; b.textContent = text;
+  row.appendChild(b); log.appendChild(row); scrollLog();
+}
+
+// ---------- thinking indicator ----------
+// 送出瞬間出現;收到第一則回覆/筆記就消失。20 秒後附上設定提示。
+let thinkRow = null, thinkTimer = null, thinkT0 = 0;
+function showThinking() {
+  clearEmpty();
+  if (!thinkRow) {
+    thinkRow = document.createElement("div");
+    thinkRow.className = "msg bot thinking";
+    const b = document.createElement("div"); b.className = "bubble";
+    b.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>' +
+      '<span class="think-t">教練思考中</span><span class="think-hint"></span>';
+    thinkRow.appendChild(coachAva()); thinkRow.appendChild(b);
+  }
+  log.appendChild(thinkRow);            // (re)append → 永遠貼在最新訊息下面
+  thinkT0 = Date.now();
+  thinkRow.querySelector(".think-t").textContent = "教練思考中";
+  thinkRow.querySelector(".think-hint").textContent = "";
+  if (thinkTimer) clearInterval(thinkTimer);
+  thinkTimer = setInterval(() => {
+    if (!thinkRow) return;
+    const s = Math.round((Date.now() - thinkT0) / 1000);
+    thinkRow.querySelector(".think-t").textContent = "教練思考中 · " + s + "s";
+    if (s === 20) thinkRow.querySelector(".think-hint").textContent =
+      "(一直沒回應的話,確認教練 session 是用 study-coach.cmd 啟動、且已批准 study-web 權限)";
+  }, 1000);
+  scrollLog();
+}
+function hideThinking() {
+  if (thinkTimer) { clearInterval(thinkTimer); thinkTimer = null; }
+  if (thinkRow) { thinkRow.remove(); thinkRow = null; }
+}
+
+// ---------- term card ----------
+const card = $("card");
+function openCard(id, anchor) {
+  const def = GLOSS[id]; if (!def) return;
+  $("cardTerm").textContent = def.term || id;
+  const body = $("cardBody");
+  body.innerHTML = renderMarkdown(def.short || "", true);
+  hydrateTerms(body);
+  $("cardDeeper").onclick = () => {
+    const term = def.term || id;
+    const q = def.deeper || ("請深入解釋:" + term);
+    addUser("🔎 " + term);
+    wsSend({ type: "ask", mode: "deeper", term, question: q, text: "🔎 " + term });
+    closeCard();
+  };
+  card.style.display = "block";
+  const r = anchor.getBoundingClientRect();
+  const cw = card.offsetWidth, ch = card.offsetHeight;
+  let left = r.left, top = r.bottom + 8;
+  if (left + cw > innerWidth - 8) left = innerWidth - cw - 8;
+  if (top + ch > innerHeight - 8) top = r.top - ch - 8;
+  card.style.left = Math.max(8, left) + "px";
+  card.style.top = Math.max(8, top) + "px";
+}
+function closeCard() { card.style.display = "none"; }
+
+document.addEventListener("click", e => {
+  const ts = e.target.closest(".ts");
+  if (ts) {
+    const v = document.querySelector("#video-panel video");
+    if (v) { v.currentTime = parseFloat(ts.dataset.t) || 0; v.play().catch(() => {}); }
+    closeCard(); e.stopPropagation(); return;
+  }
+  const t = e.target.closest(".term");
+  if (t) { openCard(t.dataset.defId, t); e.stopPropagation(); return; }
+  if (!e.target.closest("#card")) closeCard();
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { closeCard(); return; }
+  const a = document.activeElement;
+  if ((e.key === "Enter" || e.key === " ") && a && a.classList && a.classList.contains("term")) {
+    e.preventDefault(); openCard(a.dataset.defId, a);
+  }
+});
+
+// ---------- websocket ----------
+let ws = null;
+function setStatus(on) {
+  $("dot").classList.toggle("on", on);
+  $("status").textContent = on ? "教練連線中" : "已斷線,重連中…";
+}
+function wsSend(o) {
+  if (ws && ws.readyState === 1) { ws.send(JSON.stringify(o)); showThinking(); }
+  else addSystem("尚未連上座艙伺服器,正在重連…");
+}
+function sendText(text) {
+  addUser(text);
+  wsSend({ type: "ask", text });
+}
+function connect() {
+  ws = new WebSocket("ws://" + location.host + "/ws");
+  ws.onopen = () => setStatus(true);
+  ws.onclose = () => { setStatus(false); setTimeout(connect, 1500); };
+  ws.onerror = () => { try { ws.close(); } catch (_) {} };
+  ws.onmessage = e => {
+    let m; try { m = JSON.parse(e.data); } catch (_) { return; }
+    if (m.type === "msg" && m.from === "assistant") { hideThinking(); addAssistant(m.text); }
+    else if (m.type === "notes") { hideThinking(); renderNotes(m.markdown, m.lesson); }
+    else if (m.type === "snapshot") { applySnapshot(m); }
+  };
+}
+// 每次(重)連線都用 server 的權威狀態重建畫面;冪等(先清空再重放)。
+function applySnapshot(m) {
+  hideThinking();
+  if (m.notes && m.notes.markdown) renderNotes(m.notes.markdown, m.notes.lesson);
+  else showCatalog();
+  log.innerHTML = "";
+  log.classList.add("empty");
+  if (Array.isArray(m.history)) {
+    for (const h of m.history) {
+      if (h.from === "user") addUser(h.text);
+      else addAssistant(h.text);
+    }
+  }
+}
+fetchCatalog().then(() => { if (!notesShown) showCatalog(); });
+connect();
+
+// ---------- quickies ----------
+function findNextLesson() {
+  const cur = String(lastLesson || "");
+  if (!cur || !CATALOG.length) return null;
+  for (let ci = 0; ci < CATALOG.length; ci++) {
+    const ch = CATALOG[ci];
+    for (let li = 0; li < ch.lessons.length; li++) {
+      if (cur.includes(ch.lessons[li].name)) {
+        if (li + 1 < ch.lessons.length) return { chapter: ch.name, l: ch.lessons[li + 1] };
+        if (ci + 1 < CATALOG.length && CATALOG[ci + 1].lessons.length)
+          return { chapter: CATALOG[ci + 1].name, l: CATALOG[ci + 1].lessons[0] };
+        return null;
+      }
+    }
+  }
+  return null;
+}
+$("qNext").onclick = () => {
+  const next = findNextLesson();
+  if (!next) { showCatalog(); return; }     // 還沒開課/找不到 → 開目錄挑
+  if (next.l.cached) openCachedLesson(next.chapter, next.l.name);
+  else sendText("上 " + next.chapter + "/" + next.l.name);
+};
+$("qPreload").onclick = () => sendText("預載接下來兩課(只寫快取,不用 show_notes)");
+$("qQuiz").onclick = () => sendText("不看筆記,考我 3 題目前這課的重點(active recall),我答完再給更正");
+
+// ---------- input ----------
+const form = $("form"), input = $("input");
+form.onsubmit = e => {
+  e.preventDefault();
+  const text = input.value.trim(); if (!text) return;
+  input.value = ""; input.style.height = "";
+  sendText(text);
+};
+input.addEventListener("keydown", e => {
+  // 忽略 IME 組字中(選字)按下的 Enter —— macOS 注音/拼音確認候選字時也會送 Enter,
+  // isComposing 在部分瀏覽器不可靠,故同時檢查 keyCode === 229。
+  if (e.isComposing || e.keyCode === 229) return;
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
+});
+input.addEventListener("input", () => {
+  input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 160) + "px";
+});
+</script>
+</body>
+</html>
